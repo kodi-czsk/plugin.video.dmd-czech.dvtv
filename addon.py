@@ -30,9 +30,16 @@ _icon_ = xbmc.translatePath( os.path.join(_addon_.getAddonInfo('path'), 'resourc
 _htmlParser_ = HTMLParser.HTMLParser()
 _dialogTitle_ = 'DVTV.cz'
 
+_aktualneAddonNotice_ = _addon_.getSetting('aktualneAddonNoticed')
+print _aktualneAddonNotice_
+xbmc.log('wtf')
+if not _aktualneAddonNotice_ == 'true':
+    xbmcgui.Dialog().ok('DV TV', u'Tento doplněk je zastaralý a nebude dále udržován, používejte Aktuálně TV')
+    _addon_.setSetting('aktualneAddonNoticed','true')
+
 if _quality_ == '':
     xbmc.executebuiltin("XBMC.Notification('Doplněk DVTV','Vyberte preferovanou kvalitu!',30000,"+_icon_+")")
-    _addon_.openSettings() 
+    _addon_.openSettings()
 
 def log(msg, level=xbmc.LOGDEBUG):
 	if type(msg).__name__=='unicode':
@@ -58,7 +65,7 @@ def showErrorNotification(message):
 def fetchUrl(url, label):
 	pDialog = xbmcgui.DialogProgress()
 	pDialog.create(_dialogTitle_, label)
-	httpdata = ''	
+	httpdata = ''
 	try:
 		resp = urllib2.urlopen(url)
 		size = resp.info().getheader('Content-Length', 9000)
@@ -77,7 +84,7 @@ def fetchUrl(url, label):
 		showErrorNotification(_lang_(30002))
 	finally:
 		resp.close()
-		pDialog.close()	
+		pDialog.close()
 	return httpdata
 
 def listItems(offset):
@@ -114,17 +121,17 @@ def listItems(offset):
 		li.setProperty('fanart_image',image)
 		u=sys.argv[0]+'?url='+urllib.quote_plus(link.encode('utf-8'))
 		xbmcplugin.addDirectoryItem(handle=addon_handle, url=u, listitem=li)
-	o = offset + 30	
+	o = offset + 30
 	u = sys.argv[0]+'?offset='+urllib.quote_plus(str(o))
 	liNext = xbmcgui.ListItem(_lang_(30006))
-	xbmcplugin.addDirectoryItem(handle=addon_handle,url=u,listitem=liNext,isFolder=True)	
+	xbmcplugin.addDirectoryItem(handle=addon_handle,url=u,listitem=liNext,isFolder=True)
 	xbmcplugin.endOfDirectory(addon_handle)
 
 def playUrl(url):
 	httpdata = fetchUrl(url, _lang_(30004))
 	if (not httpdata):
 		return
-	if httpdata: 
+	if httpdata:
 		videos = re.compile('{[^i]*?image.*?sources:[^]]*?][^}]*?}', re.S).findall(httpdata)
 		if videos:
 			pl=xbmc.PlayList(1)
@@ -133,10 +140,10 @@ def playUrl(url):
 				image = 'http:' + re.compile('image: ?\'([^\']*?)\'').search(video).group(1).strip()
 				title = _htmlParser_.unescape(re.compile('title: ?\'([^\']*?)\'').search(video).group(1).strip())
 				description = re.compile('description: ?\'([^\']*?)\'').search(video);
-				if description:				
+				if description:
 					description = _htmlParser_.unescape(description.group(1).strip())
 				sources = re.compile('sources: ?(\[[^\]]*?])', re.S).search(video).group(1)
-				if sources:		
+				if sources:
 					versions = re.compile('{[^}]*?}', re.S).findall(sources)
 					if versions:
 						for version in versions:
@@ -144,11 +151,11 @@ def playUrl(url):
 							mime = re.compile('type: ?\'([^\']*?)\'').search(version).group(1).strip()
 							quality = re.compile('label: ?\'([^\']*?)\'').search(version).group(1).strip()
 							li = xbmcgui.ListItem(title)
-							li.setThumbnailImage(image)							
+							li.setThumbnailImage(image)
 							li.addStreamInfo('video', {'language': 'cs'})
 							if (quality == _quality_ and mime == _format_):
 								xbmc.PlayList(1).add(url, li)
-										
+
 			xbmc.Player().play(pl)
 		else:
 			showErrorNotification(_lang_(30005))
